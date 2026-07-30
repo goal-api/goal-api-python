@@ -8,13 +8,14 @@ version = "1.0.0"
 description = "Python SDK for the GOAL API: football fixtures, live scores, standings, stats and live WebSocket updates."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { file = "LICENSE" }
-authors = [{ name = "GOAL API", email = "support@goal-api.com" }]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Devara SARL", email = "support@goal-api.com" }]
+maintainers = [{ name = "Devara SARL", email = "support@goal-api.com" }]
 keywords = ["goal-api", "football", "soccer", "live-scores", "fixtures", "standings", "sports-data", "api-client", "sdk"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
