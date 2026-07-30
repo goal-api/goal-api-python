@@ -1,0 +1,44 @@
+name: publish
+
+# Tag v1.2.0 to publish 1.2.0. The version in pyproject.toml must match.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build without publishing
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write   # PyPI trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install build twine
+
+      - name: tag matches pyproject.toml
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/v}"
+          manifest=$(python -c "
+          import re, pathlib
+          print(re.search(r'^version = \"([^\"]+)\"', pathlib.Path('pyproject.toml').read_text(), re.M).group(1))")
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::tag v$tag but pyproject.toml says $manifest"
+            exit 1
+          fi
+
+      - run: python -m build
+      - run: twine check dist/*
+      - if: inputs.dry_run != true
+        uses: pypa/gh-action-pypi-publish@release/v1
