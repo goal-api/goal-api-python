@@ -2,8 +2,14 @@
 
     pip install "goal-api[live]"
 
-Python runs server-side, so the handshake uses the same ``Authorization: Bearer`` header
-as REST. ``mint_connect_token`` is there for when you hand a token to a browser instead.
+The connection authenticates twice, because two services are involved:
+
+1. The gateway authorises the HTTP upgrade with ``Authorization: Bearer <key>``.
+2. websocket-service then requires ``{"type": "auth", "apiKey": ...}`` as the very first
+   frame, and closes with 4001 if anything else arrives first.
+
+``connect()`` returns once ``auth_success`` has been received, so a returned client is
+actually usable. ``mint_connect_token`` is for handing a token to a browser instead.
 """
 
 from __future__ import annotations
@@ -20,9 +26,20 @@ logger = logging.getLogger("goal_api.live")
 
 Handler = Callable[[dict[str, Any]], Any]
 
-#: Server → client message types.
+#: Server -> client message types. The replies to client requests are named
+#: ``<request>_response``, e.g. ``subscribe`` is answered with ``subscribe_response``.
 SERVER_MESSAGES = frozenset(
-    {"auth_success", "match_update", "pong", "status", "server_shutdown", "error"}
+    {
+        "auth_success",
+        "match_update",
+        "pong",
+        "status",
+        "subscribe_response",
+        "unsubscribe_response",
+        "get_subscriptions_response",
+        "server_shutdown",
+        "error",
+    }
 )
 
 
@@ -55,9 +72,10 @@ class LiveClient:
         max_reconnect_attempts: int | None = None,
         ping_interval: float = 30.0,
         queue_size: int = 1000,
+        auth_timeout: float = 10.0,
     ) -> None:
         self._t = transport
-        self._url = url or transport.base_url.replace("http", "ws", 1) + "/ws"
+        self._url = url or derive_ws_url(transport.base_url)
         self._auto_reconnect = auto_reconnect
         self._max_attempts = max_reconnect_attempts
         self._ping_interval = ping_interval
@@ -69,6 +87,8 @@ class LiveClient:
         self._tasks: set[asyncio.Task[Any]] = set()
         self._closed = False
         self._attempt = 0
+        self._auth_timeout = auth_timeout
+        self._authenticated = False
 
     # -------------------------------------------------------------- handlers
 
@@ -95,6 +115,7 @@ class LiveClient:
             ) from error
 
         self._closed = False
+        self._authenticated = False
         try:
             self._ws = await ws_connect(
                 self._url,
@@ -105,7 +126,26 @@ class LiveClient:
         except Exception as error:  # noqa: BLE001
             raise GoalAPIError(f"Could not open WebSocket to {self._url}: {error}") from error
 
+        # Must be the first frame on the wire, or the server closes with 4001.
+        await self._ws.send(json.dumps({"type": "auth", "apiKey": self._t.api_key}))
+
+        try:
+            raw = await asyncio.wait_for(self._ws.recv(), timeout=self._auth_timeout)
+        except asyncio.TimeoutError as error:
+            await self._ws.close()
+            raise GoalAPIError("Timed out waiting for auth_success") from error
+
+        first = json.loads(raw)
+        if first.get("type") != "auth_success":
+            await self._ws.close()
+            detail = (first.get("error") or {}).get("message") or first.get("message") or first
+            raise GoalAPIError(f"WebSocket authentication failed: {detail}")
+
+        self._authenticated = True
         self._attempt = 0
+        self._dispatch(first)
+        await self._enqueue(first)
+
         for match_id in tuple(self._subscriptions):
             await self._send({"type": "subscribe", "resource": "match", "matchId": match_id})
 
@@ -114,6 +154,7 @@ class LiveClient:
 
     async def close(self) -> None:
         self._closed = True
+        self._authenticated = False
         for task in tuple(self._tasks):
             task.cancel()
         self._tasks.clear()
@@ -133,7 +174,8 @@ class LiveClient:
 
     @property
     def connected(self) -> bool:
-        return self._ws is not None and not self._closed
+        """True once authenticated, not merely once the socket is open."""
+        return self._ws is not None and not self._closed and self._authenticated
 
     # -------------------------------------------------------------- messaging
 
@@ -268,3 +310,17 @@ def mint_connect_token(client: Any) -> Any:
         token = (await mint_connect_token(goal))["data"]["token"]    # async
     """
     return client._t.post("/ws/token", {})
+
+
+def derive_ws_url(base_url: str) -> str:
+    """The live socket is served at ``/ws`` on the host root, not under ``/v1``.
+
+    nginx routes it with ``location ^~ /ws``, the only location carrying the Upgrade
+    headers. ``/v1/ws`` falls into the REST location instead and silently answers 200
+    rather than upgrading, which is a confusing failure because the URL looks right.
+    """
+    from urllib.parse import urlsplit, urlunsplit
+
+    parts = urlsplit(base_url)
+    scheme = "wss" if parts.scheme == "https" else "ws"
+    return urlunsplit((scheme, parts.netloc, "/ws", "", ""))
