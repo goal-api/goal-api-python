@@ -302,6 +302,14 @@ GOAL_API_KEY=... pytest -q      # also runs the live tests against the real API
 The live tests skip themselves without a key. Endpoint-by-endpoint coverage of the API
 lives in `tools/sweep.py` in the SDK workspace.
 
-## License
+## Licence
 
-MIT
+MIT. See [LICENSE](LICENSE).
+
+Runtime dependencies and their licences are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The short version: `httpx` (BSD-3-Clause),
+plus `websockets` (BSD-3-Clause) only if you install the `live` extra. One transitive
+dependency, `certifi`, is MPL-2.0 rather than permissive, which is called out there in case
+your licence policy cares.
+
+Security issues: [SECURITY.md](SECURITY.md).
