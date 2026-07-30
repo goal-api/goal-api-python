@@ -199,6 +199,19 @@ goal.rate_limit.type        # "DAILY" | "MONTHLY"
 
 ## Live WebSocket updates
 
+> The socket is at `wss://api.goal-api.com/ws`, **not** `/v1/ws`. Only nginx's
+> `location ^~ /ws` carries the `Upgrade` headers; `/v1/ws` is proxied as ordinary HTTP and
+> answers 200 instead of upgrading. The SDK derives the right URL for you.
+>
+> Two services authenticate: the gateway authorises the upgrade from the header or
+> `?wsToken=`, then websocket-service needs an `{"type": "auth", ...}` frame as the very
+> first message. The SDK sends it, and treats `auth_success` as the point the connection is
+> usable.
+>
+> **`subscribe` is capped per plan and the cap can be 0.** `auth_success` reports
+> `maxSubscriptions`; if it is 0 the socket works but no `match_update` will ever arrive.
+> See the known server issue in [`ENDPOINTS.md`](ENDPOINTS.md).
+
 Needs the `live` extra. WebSockets are async, so this is async even on the sync client.
 
 ```python
@@ -289,6 +302,21 @@ data = goal.request("/some/new/endpoint", {"limit": 10})
 
 ```python
 from goal_api import MATCH_STATUSES, PLAYER_TYPES, PLAYER_STATS, HALVES
+```
+
+## Examples
+
+| File | Shows |
+|---|---|
+| [`examples/basic.py`](examples/basic.py) | Status, live fixtures, standings, pagination |
+| [`examples/live_scores.py`](examples/live_scores.py) | The live socket: connect, subscribe, print every frame |
+| [`examples/webhook_server.py`](examples/webhook_server.py) | Verifying a webhook against the raw request bytes |
+| [`examples/bulk_export.py`](examples/bulk_export.py) | Walking every page of a collection to CSV |
+
+```bash
+GOAL_API_KEY=...          python examples/live_scores.py
+GOAL_WEBHOOK_SECRET=...   python examples/webhook_server.py
+GOAL_API_KEY=...          python examples/bulk_export.py > countries.csv
 ```
 
 ## Testing
