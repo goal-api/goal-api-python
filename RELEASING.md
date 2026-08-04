@@ -25,7 +25,7 @@ validates and packs, then stops before uploading.
 On pypi.org go to Your projects, then this project, then Publishing (or "Pending
 publisher" if the name is not claimed yet), and add:
 
-- Owner: `Devara-sarl`, repository: `goal-api-python`
+- Owner: `goal-api`, repository: `goal-api-python`
 - Workflow: `publish.yml`
 - Environment: `pypi`
 
