@@ -330,6 +330,22 @@ GOAL_API_KEY=... pytest -q      # also runs the live tests against the real API
 The live tests skip themselves without a key. Endpoint-by-endpoint coverage of the API
 lives in `tools/sweep.py` in the SDK workspace.
 
+## Other languages
+
+Four more first-party clients over the same API, with the same resource groups, the same
+retry and pagination behaviour and the same error types. All five release in lockstep, so
+a version number means the same surface everywhere.
+
+| Language | Package | Install |
+|---|---|---|
+| [JavaScript / TypeScript](https://github.com/goal-api/goal-api-js) | [`@goalapi/sdk`](https://www.npmjs.com/package/@goalapi/sdk) | `npm install @goalapi/sdk` |
+| [Go](https://github.com/goal-api/goal-api-go) | [`goal-api-go`](https://pkg.go.dev/github.com/goal-api/goal-api-go) | `go get github.com/goal-api/goal-api-go` |
+| [Dart / Flutter](https://github.com/goal-api/goal-api-dart) | [`goal_api`](https://pub.dev/packages/goal_api) | `dart pub add goal_api` |
+| [PHP](https://github.com/goal-api/goal-api-php) | [`goal-api/sdk`](https://packagist.org/packages/goal-api/sdk) | `composer require goal-api/sdk` |
+
+Each one is its own repository and carries the same [`ENDPOINTS.md`](ENDPOINTS.md), the
+API contract derived from the running service.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
