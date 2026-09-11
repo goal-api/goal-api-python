@@ -267,6 +267,34 @@ class Videos(_Resource):
         return self._t.get(f"/videos/date/{_q(date)}", params)
 
 
+class News(_Resource):
+    def list(self, **params: Any) -> Response:
+        """Articles newest first.
+
+        Filters: ``leagueId``, ``teamId``, ``matchId``, ``from``, ``to``, ``limit``,
+        ``offset``. Parameter names go to the wire verbatim, and ``from`` is a Python
+        keyword, so the date range has to be splatted::
+
+            client.news.list(leagueId="3", **{"from": "2026-09-01", "to": "2026-09-08"})
+
+        That is true of every date-range endpoint in this SDK, not only this one.
+        """
+        return self._t.get("/news", params)
+
+    def by_match(self, match_id: Any, **params: Any) -> Response:
+        return self._t.get(f"/news/match/{_q(match_id)}", params)
+
+    def by_team(self, team_id: Any, **params: Any) -> Response:
+        return self._t.get(f"/news/team/{_q(team_id)}", params)
+
+    def by_league(self, league_id: Any, **params: Any) -> Response:
+        return self._t.get(f"/news/league/{_q(league_id)}", params)
+
+    def get(self, article_id: Any) -> Response:
+        """One article, by our id or the provider's news key. 404s when absent."""
+        return self._t.get(f"/news/{_q(article_id)}")
+
+
 class Odds(_Resource):
     def list(self, **params: Any) -> Response:
         return self._t.get("/odds", params)
@@ -289,6 +317,7 @@ ALL_RESOURCES: dict[str, type[_Resource]] = {
     "h2h": HeadToHead,
     "results": Results,
     "videos": Videos,
+    "news": News,
     "odds": Odds,
     "predictions": Predictions,
 }

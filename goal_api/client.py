@@ -35,6 +35,7 @@ class _ClientBase:
     h2h: _r.HeadToHead
     results: _r.Results
     videos: _r.Videos
+    news: _r.News
     odds: _r.Odds
     predictions: _r.Predictions
 

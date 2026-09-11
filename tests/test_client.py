@@ -138,8 +138,26 @@ def test_search_puts_q_in_the_query():
 def test_every_resource_group_is_attached():
     with make_client(recorder()) as goal:
         for group in ("status", "countries", "leagues", "teams", "fixtures", "standings",
-                      "players", "coaches", "h2h", "results", "videos", "odds", "predictions"):
+                      "players", "coaches", "h2h", "results", "videos", "news", "odds",
+                      "predictions"):
             assert hasattr(goal, group), group
+
+
+def test_news_list_hits_news_and_forwards_its_filters():
+    rec = recorder()
+    with make_client(rec) as goal:
+        goal.news.list(leagueId="3", teamId="150", limit=5, **{"from": "2026-09-01"})
+
+    request = rec.seen[-1]
+    assert request.url.path == "/v1/news"
+    params = dict(request.url.params)
+    assert params["leagueId"] == "3"
+    assert params["teamId"] == "150"
+    assert params["limit"] == "5"
+    # `from` is a Python keyword, so it can only arrive splatted. Pinned because the
+    # obvious call -- news.list(from="...") -- is a SyntaxError, and that is worth a
+    # test rather than a surprise.
+    assert params["from"] == "2026-09-01"
 
 
 # ------------------------------------------------------------------ errors
