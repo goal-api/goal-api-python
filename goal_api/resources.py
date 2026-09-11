@@ -3,7 +3,7 @@
 The methods just return whatever the transport gives back, so the same definition serves
 ``goal.teams.list()`` and ``await goal.teams.list()``.
 
-Rows stay dicts rather than dataclasses -- they are provider-shaped and change. Accepted
+Rows stay dicts rather than dataclasses -- they follow the API's response shapes and change. Accepted
 params and limit ceilings: ENDPOINTS.md
 """
 
@@ -291,7 +291,7 @@ class News(_Resource):
         return self._t.get(f"/news/league/{_q(league_id)}", params)
 
     def get(self, article_id: Any) -> Response:
-        """One article, by our id or the provider's news key. 404s when absent."""
+        """One article, by our id or the article's apiId. 404s when absent."""
         return self._t.get(f"/news/{_q(article_id)}")
 
 
