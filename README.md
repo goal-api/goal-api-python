@@ -258,7 +258,7 @@ Your frontend must never see your API key. Mint a single-use token server-side i
 from goal_api.live import mint_connect_token
 
 token = mint_connect_token(goal)["data"]["token"]
-# browser: new WebSocket(`wss://api.goal-api.com/v1/ws?wsToken=${token}`)
+# browser: new WebSocket(`wss://api.goal-api.com/ws?wsToken=${token}`)
 ```
 
 ## Webhooks
